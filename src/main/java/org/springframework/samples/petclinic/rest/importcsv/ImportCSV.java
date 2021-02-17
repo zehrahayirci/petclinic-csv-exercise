@@ -11,6 +11,7 @@ import org.springframework.samples.petclinic.service.ClinicService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.constraints.AssertFalse;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -40,51 +41,52 @@ public class ImportCSV {
         do {
             pet = new Pet();
 
-            String field = "";
+            String petname = "";
             while (i < csv.length() && csv.charAt(i) != ';') {
-                field += csv.charAt(i++);
+                petname += csv.charAt(i++);
             }
             i++;
 
-            pet.setName(field);
+            pet.setName(petname);
 
-            field = "";
+            String birthdate = "";
             while (i < csv.length() && csv.charAt(i) != ';') {
-                field += csv.charAt(i++);
+                birthdate += csv.charAt(i++);
             }
             i++;
 
             try {
-                pet.setBirthDate((new SimpleDateFormat("yyyy-MM-dd")).parse(field));
+                pet.setBirthDate((new SimpleDateFormat("yyyy-MM-dd")).parse(birthdate));
             } catch (ParseException e) {
                 HttpHeaders headers = new HttpHeaders();
-                headers.add("errors", "date " + field + " not valid");
+                headers.add("errors", "date " + birthdate + " not valid");
                 return new ResponseEntity<List<Pet>>(headers, HttpStatus.BAD_REQUEST);
             }
 
-            field = "";
+            String pettype = "";
             while (i < csv.length() && csv.charAt(i) != ';') {
-                field += csv.charAt(i++);
+                pettype += csv.charAt(i++);
             }
             i++;
 
             if (pet != null) {
                 ArrayList<PetType> ts = (ArrayList<PetType>) clinicService.findPetTypes();
                 for (int j = 0; j < ts.size(); j++) {
-                    if (ts.get(j).getName().toLowerCase().equals(field)) {
-                        pet.setType(ts.get(j));
-                        break;
+                    if (ts.get(j).getName().toLowerCase().equals(pettype)) {
+
+                        pet.setType( ts.get(j));
                     }
                 }
+
             }
 
-            field = "";
+            String tmpowner = "";
             while (i < csv.length() && (csv.charAt(i) != ';' && csv.charAt(i) != '\n')) {
-                field += csv.charAt(i++);
+                tmpowner += csv.charAt(i++);
             }
 
             if (pet != null) {
-                String owner = field;
+                String owner = tmpowner;
                 List<Owner> matchingOwners = clinicService.findAllOwners()
                     .stream()
                     .filter(o -> o.getLastName().equals(owner))
@@ -106,12 +108,12 @@ public class ImportCSV {
             if (csv.charAt(i) == ';') {
                 i++;
 
-                field = "";
+                String action = "";
                 while (i < csv.length() && csv.charAt(i) != '\n') {
-                    field += csv.charAt(i++);
+                    action += csv.charAt(i++);
                 }
 
-                if (field.toLowerCase().equals("add")) {
+                if (action.toLowerCase().equals("add")) {
                     clinicService.savePet(pet);
                 } else {
                     for (Pet q : pet.getOwner().getPets()) {
@@ -136,4 +138,6 @@ public class ImportCSV {
 
         return new ResponseEntity<List<Pet>>(pets, HttpStatus.OK);
     }
+
+
 }
